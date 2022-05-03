@@ -1,0 +1,124 @@
+(ns toko.main
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/cupertino.dart" :as c]
+            ["package:flutter/services.dart" :as services]
+            ["package:modal_bottom_sheet/modal_bottom_sheet.dart" :as bs]
+            [cljd.flutter.alpha :as f]
+            [toko.jigsaw.scrolls :as scrolls]
+            ["dart:core" :as core]))
+
+(defn show-add-transaction-modal [context]
+  (.showCupertinoModalBottomSheet bs/CupertinoScaffold
+   :context context
+   :expand true
+   :builder (fn [_] (m/Container))))
+
+(defn transaction-screen []
+  (f/widget
+   :context context
+   :state [state {:progress 0
+                  :haptic? false}]
+
+   (let [limit 100
+         trigger 72
+         plus-fn (fn []
+                   (.heavyImpact services/HapticFeedback)
+                   (show-add-transaction-modal context))
+         notif! (fn [notification]
+                  (cond
+                     ;; on overscroll
+                    (dart/is? notification m/ScrollUpdateNotification)
+                    (let [haptic? (:haptic? @state)
+                          dy (-> notification .-metrics .-pixels)]
+                      (when (and (<= dy 0) (>= dy (- limit)))
+                        (swap! state assoc :progress (/ (.abs dy) limit))
+
+                         ;; scroll released
+                        (let [achieved? (>= (.abs dy) trigger)
+                              released? (and (nil? (.-dragDetails notification)) (false? haptic?))]
+                          (when (and achieved? released?)
+                            (plus-fn)
+                            (swap! state assoc :haptic? true)
+                            (core/print "Haptic Triggered")))))
+
+                     ;; when stop scrolling
+                    (dart/is? notification m/ScrollEndNotification)
+                    (do
+                      (swap! state assoc :haptic? false)
+                      (core/print "Haptic Restored")))
+                  true)]
+     (m/SafeArea
+      :child (m/Stack
+              :children [(m/NotificationListener
+                          :onNotification notif!
+                          :child (scrolls/default-view
+                                  :slivers [(m/SliverToBoxAdapter :child (m/Text "child"))]))
+                         (m/Positioned
+                          :right 16
+                          :top 16
+                          :child (.scale m/Transform
+                                         :scale (inc (* 0.3 (:progress @state)))
+                                         :child (c/CupertinoButton
+                                                 :padding m.EdgeInsets/zero
+                                                 :child (m/Icon c.CupertinoIcons/add_circled_solid
+                                                                :color c.CupertinoColors/black
+                                                                :size 28)
+                                                 :minSize 0
+                                                 :onPressed plus-fn)))])))))
+
+(defn goods-screen []
+  (f/widget
+   (m/SafeArea :child (m/Text "goods-screen"))))
+
+(defn settings-screen []
+  (f/widget
+   (m/SafeArea :child (m/Text "settings-screen"))))
+
+(defn home-screen []
+  (f/widget
+   :state [tab-index 0]
+
+   (bs/CupertinoScaffold
+    :body
+    (m/Scaffold
+     :body (c/CupertinoPageScaffold
+            :child (m/AnnotatedRegion
+                    :value services.SystemUiOverlayStyle/dark
+                    :child (m/IndexedStack
+                            :index @tab-index
+                            :children [(transaction-screen)
+                                       (goods-screen)
+                                       (settings-screen)])))
+     :bottomNavigationBar (m/BottomNavigationBar
+                           :type m.BottomNavigationBarType/fixed
+                           :currentIndex @tab-index
+                           :showSelectedLabels false
+                           :showUnselectedLabels false
+                           :onTap (fn [index] (reset! tab-index index))
+                           :items [(m/BottomNavigationBarItem
+                                    :label "Transaction"
+                                    :icon (m/Icon c.CupertinoIcons/add_circled)
+                                    :activeIcon (m/Icon c.CupertinoIcons/add_circled_solid))
+                                   (m/BottomNavigationBarItem
+                                    :label "Goods"
+                                    :icon (m/Icon c.CupertinoIcons/cube_box)
+                                    :activeIcon (m/Icon c.CupertinoIcons/cube_box_fill))
+                                   (m/BottomNavigationBarItem
+                                    :label "Settings"
+                                    :icon (m/Icon c.CupertinoIcons/gear_alt)
+                                    :activeIcon (m/Icon c.CupertinoIcons/gear_alt_fill))])))))
+
+(defn my-app []
+  (f/widget
+   (m/MaterialApp
+    :theme (m/ThemeData
+            :splashColor m.Colors/transparent
+            :highlightColor m.Colors/transparent
+            :appBarTheme (m/AppBarTheme)
+            :bottomNavigationBarTheme (m/BottomNavigationBarThemeData
+                                       :selectedItemColor c.CupertinoColors/black))
+    :home (home-screen))))
+
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn main []
+  (m/runApp (my-app)))
