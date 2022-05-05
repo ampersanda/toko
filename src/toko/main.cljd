@@ -3,12 +3,13 @@
             ["package:flutter/cupertino.dart" :as c]
             ["package:flutter/services.dart" :as services]
             ["package:modal_bottom_sheet/modal_bottom_sheet.dart" :as bs]
+            ["dart:core" :as core]
             [cljd.flutter.alpha :as f]
-            [toko.jigsaw.scrolls :as scrolls]
-            ["dart:core" :as core]))
+            [toko.jigsaw.scrolls :as scrolls]))
 
 (defn show-add-transaction-modal [context]
-  (.showCupertinoModalBottomSheet bs/CupertinoScaffold
+  (.showCupertinoModalBottomSheet
+   bs/CupertinoScaffold
    :context context
    :expand true
    :builder (fn [_] (m/Container))))
@@ -26,7 +27,8 @@
                    (show-add-transaction-modal context))
          notif! (fn [notification]
                   (cond
-                     ;; on overscroll
+                    ;; on overscroll
+                    #_{:clj-kondo/ignore [:unresolved-namespace]}
                     (dart/is? notification m/ScrollUpdateNotification)
                     (let [haptic? (:haptic? @state)
                           dy (-> notification .-metrics .-pixels)]
@@ -41,7 +43,8 @@
                             (swap! state assoc :haptic? true)
                             (core/print "Haptic Triggered")))))
 
-                     ;; when stop scrolling
+                    ;; when stop scrolling
+                    #_{:clj-kondo/ignore [:unresolved-namespace]}
                     (dart/is? notification m/ScrollEndNotification)
                     (do
                       (swap! state assoc :haptic? false)
@@ -51,13 +54,13 @@
       :child (m/Stack
               :children [(m/NotificationListener
                           :onNotification notif!
-                          :child (scrolls/default-view
+                          :child (scrolls/scroll-view
                                   :slivers [(m/SliverToBoxAdapter :child (m/Text "child"))]))
                          (m/Positioned
                           :right 16
                           :top 16
                           :child (.scale m/Transform
-                                         :scale (inc (* 0.3 (:progress @state)))
+                                         :scale (inc (* 0.4 (:progress @state)))
                                          :child (c/CupertinoButton
                                                  :padding m.EdgeInsets/zero
                                                  :child (m/Icon c.CupertinoIcons/add_circled_solid

@@ -2,7 +2,7 @@
   (:require ["package:flutter/material.dart" :as m]
             [cljd.flutter.alpha :as f]))
 
-(defn default-view [& {:keys [slivers]}]
+(defn scroll-view [& {:keys [slivers]}]
   (f/widget
     (m/CustomScrollView
       :physics (m/BouncingScrollPhysics

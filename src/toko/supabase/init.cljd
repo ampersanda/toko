@@ -1,0 +1,7 @@
+(ns toko.supabase.init
+  (:require ["package:supabase/supabase.dart" :as sup]))
+
+(def client
+  (let [supabase-key ^:const (String/fromEnvironment "SUPABASE_KEY")
+        supabase-url ^:const (String/fromEnvironment "SUPABASE_URL")]
+    (sup/SupabaseClient supabase-url supabase-key)))
