@@ -52,3 +52,4 @@ app.*.map.json
 .lsp
 lib/*.jar
 lib/cljd-out
+.clj-kondo
